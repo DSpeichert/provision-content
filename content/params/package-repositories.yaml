@@ -394,11 +394,11 @@ Schema:
         - contrib
         - main
         - non-free
-    - tag: sledgehammer/46e1a213a0e9b54e413369a0bcb22ed6a97cfc9f
+    - tag: sledgehammer/8e75793bf77e086eaf2e404c2e21a601a42d7e9b
       os:
-        - sledgehammer/46e1a213a0e9b54e413369a0bcb22ed6a97cfc9f
+        - sledgehammer/8e75793bf77e086eaf2e404c2e21a601a42d7e9b
       arch: amd64
-      url: "http://rackn-sledgehammer.s3-website-us-west-2.amazonaws.com/sledgehammer/46e1a213a0e9b54e413369a0bcb22ed6a97cfc9f/"
+      url: "http://rackn-sledgehammer.s3-website-us-west-2.amazonaws.com/sledgehammer/8e75793bf77e086eaf2e404c2e21a601a42d7e9b/"
       installSource: true
   type: "array"
   items:

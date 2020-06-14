@@ -392,12 +392,14 @@ Templates:
       if [[ "$ip6" == "" ]] ; then
           echo 'DHCP=ipv4'
           echo
-          echo '[DHCP]'
+          echo '[DHCPv4]'
           echo 'ClientIdentifier=mac'
+          echo 'SendDecline=false'
+          echo 'SendRelease=false'
       else
           echo 'DHCP=ipv6'
           echo
-          echo '[DHCP]'
+          echo '[DHCPv6]'
           echo 'ClientIdentifier=mac'
       fi
       } > /newinitramfs/etc/systemd/network/20-bootif.network
@@ -497,7 +499,7 @@ Templates:
                   echo " Adding DNS server $i"
                   echo "nameserver $i" >> "$tmpfile"
               done
-              mv "$tmpfile" "$realconf"
+               mv "$tmpfile" "$realconf"
               ;;
       esac
 
@@ -509,6 +511,7 @@ Templates:
       tmp/*
       IMAGE
       var/cache/yum/*
+      var/cache/dnf/*
       usr/local/bin/*
       usr/share/doc
   - Name: install-sipcalc
@@ -521,36 +524,22 @@ Templates:
       wget https://s3-us-west-2.amazonaws.com/rackn-sledgehammer/sipcalc-1.1.6-15.fc30.$arch.rpm -O /root/sipcalc.rpm
       yum install -y /root/sipcalc.rpm
       rm -rf /root/sipcalc.rpm
-  - Name: update-systemd
-    Contents: |
-      #!/bin/bash
-      # No updated systemd for things that are not x86_64
-      [[ $(uname -m) = x86_64 ]] || exit 0
-      wget https://copr.fedorainfracloud.org/coprs/jsynacek/systemd-backports-for-centos-7/repo/epel-7/jsynacek-systemd-backports-for-centos-7-epel-7.repo -O /etc/yum.repos.d/jsynacek-systemd-centos-7.repo
-      yum remove -y systemd-networkd systemd-resolved
-      yum update -y systemd
-      rm /etc/yum.repos.d/jsynacek-systemd-centos-7.repo
-      yum makecache -y
-  - Name: update-parted
-    Contents: |
-      #!/bin/bash
-      wget https://s3-us-west-2.amazonaws.com/rackn-sledgehammer/parted-3.2-35.el7.centos.x86_64.rpm -O /root/parted.rpm
-      yum install -y /root/parted.rpm
-      rm -rf /root/parted.rpm
   - Name: remove-unwanted-pkgs
     Contents: |
       #!/bin/bash
       chmod 755 /sbin/sledgehammer-start-up.sh
       echo "Removing unwanted packages"
       UNWANTED=(
-          'alsa-firmware'
+          cronie
           'firewalld'
+          'geolite2*'
           'i*-firmware'
-          postfix
-          mozjs17
+          'NetworkManager'
+          mozjs60
           plymouth
-          selinux-policy-targeted)
-      yum -y autoremove "${UNWANTED[@]}"
+          selinux-policy-targeted
+          'sssd*')
+      dnf -y autoremove "${UNWANTED[@]}"
       echo "Removing unwanted locales"
       cd /usr/share/locale
       mv locale.alias en en_US ..
@@ -598,13 +587,9 @@ Templates:
       #!/bin/bash
       {{ template "setup.tmpl" .}}
       systemctl disable kdump.service
-      systemctl disable crond.service
       systemctl disable auditd.service
       systemctl disable irqbalance.service
       systemctl disable remote-fs.target
-      systemctl disable network.service
-      systemctl disable systemd-readahead-collect.service
-      systemctl disable systemd-readahead-replay.service
       cd /lib/systemd/system
       rm -f basic.target.wants/rhel-autorelabel-mark.service \
           basic.target.wants/rhel-autorelabel.service \
@@ -615,7 +600,7 @@ Templates:
       systemctl enable systemd-resolved.service
       systemctl enable systemd-networkd-wait-online.service
       systemctl enable sledgehammer.service
-      systemctl enable ntpd.service
+      systemctl enable chronyd.service
   - Name: prepare-stage-1
     Contents: |
       #!/bin/bash

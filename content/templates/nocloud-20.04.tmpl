@@ -1,0 +1,58 @@
+{{/*
+#
+# This template allows the operator to use the default nocloud 
+# meta-data, or the operator may specify an alternate for use
+# with local customizations
+#
+# To use, simply create a Param called "select-kickseed" with the value
+# set to the template you wish to use.  You must specify the correct
+# template file and type for your Ubuntu 20.04 install.
+#
+# The param ('select-kickseed') can be applied to a Machine, or to a Profile
+# which is subsequently applied to a machine.  Remember the 'global' profile
+# applies to all machines provisioned by Digital Rebar Provision.
+#
+# Required Paramters:  none
+# Optional Paramters:  select-kickseed
+#
+# Defaults:
+#   select-seed:  empty
+#
+# Example (applies globally to all Machines):
+#   drpcli profiles set global param select-kickseed to "my-net-seed.tmpl"
+#
+# Full details of what options are understood by the Subuquity installer
+# can be found at:
+#   https://ubuntu.com/server/docs/install/autoinstall-reference
+#
+*/ -}}
+{{if .ParamExists "select-kickseed" -}}
+  {{$selectKickSeed := (printf "%s" (.Param "select-kickseed")) -}}
+  {{.CallTemplate $selectKickSeed .}}
+{{else -}}
+#cloud-config
+autoinstall:
+  version: 1
+  storage:
+    layout:
+      name: lvm
+  identity:
+    hostname: {{.Machine.ShortName}}
+    username: root
+    password: {{if .ParamExists "provisioner-default-password-hash"}}{{.Param "provisioner-default-password-hash"}}{{else}}$6$drprocksdrprocks$upAIK9ynEEdFmaxJ5j0QRvwmIu2ruJa1A1XB7GZjrnYYXXyNr4qF9FttxMda2j.cmh.TSiLgn4B/7z0iSHkDC1{{end}}
+  ssh:
+    install-server: yes
+    allow-pw: yes
+  user-data:
+    disable_root: false
+  late-commands:
+    - "sed -ie 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=30/' /target/etc/default/grub"
+    - "wget -O /target/tmp/reset-workflow.sh {{.Machine.Url}}/reset-workflow.sh"
+    - "wget -O /target/tmp/runner.sh {{.Machine.Url}}/runner.sh"
+    - "curtin in-target --target=/target -- bash /tmp/reset-workflow.sh"
+    - "curtin in-target --target=/target -- bash /tmp/runner.sh"
+    - "rm /target/tmp/reset-workflow.sh"
+    - "rm /target/tmp/runner.sh"
+  {{if .ParamExists "proxy-servers" -}}proxy: {{index (.Param "proxy-servers") 0}}{{end -}}
+
+{{end -}}

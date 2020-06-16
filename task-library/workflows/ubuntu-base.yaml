@@ -10,7 +10,7 @@ Documentation: |
   .. note:: To enable, upload the Ubuntu-18.04 ISO as per the ubuntu-18.04 BootEnv
 
 Stages:
-  - ubuntu-18.04-install
+  - ubuntu-20.04-install
   - runner-service
   - finish-install
   - complete
